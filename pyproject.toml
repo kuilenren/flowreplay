@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flowreplay"
-version = "0.1.0"
+version = "0.2.0"
 description = "Record a browser flow once; keep it as a portable, self-healing SKILL.md that agents can replay deterministically."
 readme = "README.md"
 requires-python = ">=3.10"

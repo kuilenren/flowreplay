@@ -117,7 +117,8 @@ The gap FlowReplay fills: no existing open tool combines *record-to-data*,
 - **M0 ✓:** format spec, reference recorder, round-trip, static grading, `lint`.
 - **M1 ✓:** deterministic replay engine (a slim Playwright executor over ~15 actions),
   self-healing write-back, `{{variable}}` substitution, `flowreplay replay`.
-- **M2:** richer quality report, extract/monitor actions, 1.0 on PyPI, golden-replay CI.
+- **M2 (in progress):** ✓ extract actions, ✓ richer quality report, ✓ golden-replay CI;
+  remaining: monitor actions, 1.0 on PyPI.
 - **M3 (optional):** Agent-Skills alignment, an MCP `flow.replay` tool, a bring-your-own
   VLM visual-fallback plugin (off by default), and the governance layer of §5.
 

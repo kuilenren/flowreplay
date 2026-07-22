@@ -17,13 +17,16 @@ from .quality import assess_flow_quality
 from .skillmd import distill_flow, flow_to_skill_md, parse_skill_md
 
 
+_GRADE_ICON = {"robust": "🟢", "moderate": "🟡", "fragile": "🔴"}
+
+
 def _print_quality(steps: list[Any]) -> None:
     q = assess_flow_quality(steps)
-    icon = {"robust": "🟢", "moderate": "🟡", "fragile": "🔴"}[q["grade"]]
-    print(f"  {icon} robustness: {q['grade']} (score {q['score']}, "
-          f"{q['robust']}/{q['graded_steps']} steps on durable locators)")
+    print(f"  {_GRADE_ICON[q['grade']]} {q['summary']}")
     for fs in q["fragile_steps"]:
         print(f"     - step {fs['index']} [{fs['grade']}] {fs['action_type']}: {fs['description']}")
+    for lv in q["literal_value_steps"]:
+        print(f"     - step {lv['index']} hard-coded {lv['action_type']} value: {lv['value_preview']!r}")
 
 
 async def _run_record(args: argparse.Namespace) -> dict[str, Any]:
@@ -78,10 +81,14 @@ def _cmd_lint(args: argparse.Namespace) -> int:
         flow = parse_skill_md(fh.read())
     steps = flow.get("steps") or []
     d = distill_flow(flow, steps)
+    if args.json:
+        print(json.dumps({"distill": d, "quality": assess_flow_quality(steps)},
+                         ensure_ascii=False, indent=2))
+        return 0
     print(f"{d.get('name') or flow.get('name')}  —  {d['capability']} on {d.get('domain') or 'web'}")
     print(f"  {d['step_count']} steps"
           + (f", params: {', '.join(d['params'])}" if d["params"] else "")
-          + (f"  [imported from a foreign SKILL.md]" if flow.get("imported_foreign") else ""))
+          + ("  [imported from a foreign SKILL.md]" if flow.get("imported_foreign") else ""))
     _print_quality(steps)
     return 0
 
@@ -138,6 +145,9 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     if result["success"]:
         tail = f" · self-healed, wrote back {args.file}" if result["healed"] and not args.no_heal else ""
         print(f"✅ replay succeeded{tail}")
+        if result.get("extractions"):
+            print("extractions:")
+            print(json.dumps(result["extractions"], ensure_ascii=False, indent=2))
         return 0
     print(f"❌ replay failed at step {result['failed_step']}", file=sys.stderr)
     return 1
@@ -159,6 +169,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     lint = sub.add_parser("lint", help="summarize a SKILL.md and grade robustness")
     lint.add_argument("file")
+    lint.add_argument("--json", action="store_true", help="emit distill + quality as JSON")
     lint.set_defaults(func=_cmd_lint)
 
     exp = sub.add_parser("export", help="round-trip the machine-readable flow block")

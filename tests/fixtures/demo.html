@@ -8,6 +8,14 @@
   <!-- role=button, accessible name "Search" -->
   <button id="go">Search</button>
   <div id="out"></div>
+  <span id="status">ready</span>
+  <table id="results">
+    <thead><tr><th>Name</th><th>Score</th></tr></thead>
+    <tbody>
+      <tr><td>Alice</td><td>91</td></tr>
+      <tr><td>Bob</td><td>87</td></tr>
+    </tbody>
+  </table>
   <script>
     document.getElementById('go').addEventListener('click', function () {
       var v = document.getElementById('q').value;

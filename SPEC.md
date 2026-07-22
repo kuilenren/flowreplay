@@ -138,12 +138,20 @@ A conforming player SHOULD support the core set. The reference recorder emits th
 | `wait` | | `options` | Wait for a condition. |
 | `scroll_to_text` | | `options.text` | |
 | `new_tab` / `switch_tab` / `close_tab` | | `options` | Tab control. |
-| `extract_text` / `extract_tables` / `extract_structured` | | `locators?`, `options` | *Reserved for M2.* |
+| `extract_text` | | `locators` | Read one element's text into `extractions`. |
+| `extract_tables` | | `locators?` | Parse table(s) → `{headers, rows}` list. |
+| `extract_structured` | | `options.fields` | `{name: css}` → `{name: text}`. |
 | `monitor_start` / `monitor_poll` / `monitor_stop` | | `options` | *Reserved.* |
 | `search` / `screenshot` | | `options` | *Reserved.* |
 
 Unknown `action_type` values MUST be treated as a hard error by a player (not
 silently skipped), unless the caller opts into lenient mode.
+
+**Extraction outputs.** `extract_text`, `extract_tables`, and `extract_structured`
+produce data rather than mutate the page. A player collects them into an
+`extractions` map on the run result, keyed by `options.name` (or `<action>_<n>` when
+unnamed): text → a string; tables → a list of `{headers, rows}`; structured → a
+`{field: text}` object built from `options.fields` (a `{name: css-selector}` map).
 
 ### 5.2 Locators — the fallback ladder
 

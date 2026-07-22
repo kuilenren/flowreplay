@@ -27,12 +27,29 @@ _SUPPORTED = {
     "scroll_to_text", "coordinate_click", "press_keys", "back", "forward",
     "reload", "wait", "handle_dialog", "upload", "download",
     "new_tab", "switch_tab", "close_tab",
+    "extract_text", "extract_tables", "extract_structured",
 }
-# Known but deliberately not implemented in M1 (§SPEC 5.1 "reserved").
+# Known but not implemented yet (§SPEC 5.1 "reserved").
 _RESERVED = {
-    "search", "screenshot", "extract_text", "extract_tables",
-    "extract_structured", "monitor_start", "monitor_poll", "monitor_stop",
+    "search", "screenshot", "monitor_start", "monitor_poll", "monitor_stop",
 }
+
+# Parse a single <table> element into {headers, rows}.
+_TABLE_JS = """el => {
+  const tbl = el.tagName === 'TABLE' ? el : el.querySelector('table');
+  if (!tbl) return null;
+  const grid = Array.from(tbl.rows).map(r => Array.from(r.cells).map(c => (c.innerText || '').trim()));
+  let headers = [], body = grid;
+  if (tbl.querySelector('thead') && grid.length) { headers = grid[0]; body = grid.slice(1); }
+  return { headers, rows: body };
+}"""
+# Parse every <table> on the page.
+_ALL_TABLES_JS = """() => Array.from(document.querySelectorAll('table')).map(tbl => {
+  const grid = Array.from(tbl.rows).map(r => Array.from(r.cells).map(c => (c.innerText || '').trim()));
+  let headers = [], body = grid;
+  if (tbl.querySelector('thead') && grid.length) { headers = grid[0]; body = grid.slice(1); }
+  return { headers, rows: body };
+})"""
 
 
 class ReplayError(RuntimeError):
@@ -125,6 +142,7 @@ class _Runner:
         self.context = context
         self.page = page
         self.timeout = timeout_ms
+        self.extractions: dict[str, Any] = {}
 
     async def execute(self, step: dict[str, Any], variables: dict[str, Any]) -> int | None:
         """Run one step. Returns the winning locator index (for element steps), or
@@ -303,6 +321,42 @@ class _Runner:
         self.page = self.context.pages[-1] if self.context.pages else await self.context.new_page()
         return None
 
+    # -- extraction (produces data; results land in the run's ``extractions``) --
+    def _extract_key(self, step: dict[str, Any], action: str) -> str:
+        return (step.get("options") or {}).get("name") or f"{action}_{len(self.extractions) + 1}"
+
+    async def _a_extract_text(self, step, variables):
+        idx, target, kind = await self._click_target(step)
+        if kind == "coordinate":
+            raise ReplayError("extract_text needs an element locator")
+        self.extractions[self._extract_key(step, "text")] = (await target.inner_text()).strip()
+        return idx
+
+    async def _a_extract_tables(self, step, variables):
+        if step.get("locators"):
+            idx, target, kind = await self._click_target(step)
+            if kind == "coordinate":
+                raise ReplayError("extract_tables needs an element locator")
+            data = await target.evaluate(_TABLE_JS)
+            tables = [data] if data else []
+        else:
+            idx = None
+            tables = await self.page.evaluate(_ALL_TABLES_JS)
+        self.extractions[self._extract_key(step, "tables")] = tables
+        return idx
+
+    async def _a_extract_structured(self, step, variables):
+        # options.fields maps a field name → a CSS selector to read inner_text from.
+        fields = (step.get("options") or {}).get("fields") or {}
+        out: dict[str, Any] = {}
+        for name, selector in fields.items():
+            try:
+                out[name] = (await self.page.locator(selector).first.inner_text()).strip()
+            except Exception:
+                out[name] = None
+        self.extractions[self._extract_key(step, "structured")] = out
+        return None
+
 
 # ── Self-healing ──────────────────────────────────────────────────────────────
 
@@ -403,6 +457,7 @@ async def replay_flow(
         "steps": results,
         "healed": healed_any,
         "failed_step": next((r["seq"] for r in results if not r["success"]), None),
+        "extractions": runner.extractions,
         "inspection": inspection,
     }
 

@@ -109,8 +109,9 @@ replay(xxx.SKILL.md, vars)   ──►  for each step, try locators in order
 - **M0 ✓:** format spec, reference recorder, SKILL.md round-trip, robustness lint.
 - **M1 ✓:** deterministic replay engine (slim Playwright executor, ~15 actions),
   self-healing locator write-back, `{{variable}}` substitution, `flowreplay replay`.
-- **M2:** richer quality report, more action coverage (extract/monitor), golden-replay
-  CI matrix, `1.0` on PyPI.
+- **M2 (in progress):** ✓ extract actions (text / tables / structured), ✓ richer
+  quality report + `lint --json`, ✓ golden-replay CI job. Remaining: monitor actions,
+  `1.0` on PyPI.
 - **M3 (optional):** Agent-Skills alignment, an MCP `flow.replay` tool, an optional
   bring-your-own-VLM visual fallback (off by default), governance layer.
 

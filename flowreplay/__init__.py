@@ -16,7 +16,7 @@ from .quality import assess_flow_quality
 from .recorder import compile_events_to_steps, record_flow
 from .skillmd import distill_flow, flow_to_skill_md, parse_skill_md
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "record_flow",

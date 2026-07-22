@@ -50,6 +50,8 @@ def assess_flow_quality(steps: list[Any]) -> dict[str, Any]:
     """
     counts = {"robust": 0, "moderate": 0, "fragile": 0, "structural": 0}
     fragile_steps: list[dict[str, Any]] = []
+    by_kind: dict[str, int] = {}
+    literal_value_steps: list[dict[str, Any]] = []
 
     for i, step in enumerate(steps):
         g = _step_grade(step)
@@ -61,18 +63,40 @@ def assess_flow_quality(steps: list[Any]) -> dict[str, Any]:
                 "grade": g,
                 "description": step.get("description"),
             })
+        locs = step.get("locators") or step.get("locators_json") or []
+        if locs and isinstance(locs[0], dict) and locs[0].get("kind"):
+            by_kind[locs[0]["kind"]] = by_kind.get(locs[0]["kind"], 0) + 1
+        # A hard-coded fill/select value is a parameterization (and possibly a
+        # plaintext-secret) smell — it should usually be a {{variable}}.
+        vt = step.get("value_template")
+        if step.get("action_type") in ("fill", "select") and vt and "{{" not in str(vt):
+            literal_value_steps.append({
+                "index": i + 1,
+                "action_type": step.get("action_type"),
+                "value_preview": str(vt)[:40],
+            })
 
     graded = counts["robust"] + counts["moderate"] + counts["fragile"]
     score = round(counts["robust"] / graded, 4) if graded else 1.0
     grade = "robust" if score >= 0.8 else "moderate" if score >= 0.5 else "fragile"
 
+    parts = [f"{grade}: {counts['robust']}/{graded} steps on durable locators"]
+    if counts["fragile"]:
+        parts.append(f"{counts['fragile']} fragile")
+    if literal_value_steps:
+        parts.append(f"{len(literal_value_steps)} hard-coded value(s) — consider parameterizing")
+    summary = "; ".join(parts)
+
     return {
         "grade": grade,
         "score": score,
+        "summary": summary,
         "total_steps": len(steps),
         "graded_steps": graded,
         "robust": counts["robust"],
         "moderate": counts["moderate"],
         "fragile": counts["fragile"],
         "fragile_steps": fragile_steps,
+        "by_kind": by_kind,
+        "literal_value_steps": literal_value_steps,
     }
