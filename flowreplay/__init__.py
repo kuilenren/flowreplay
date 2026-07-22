@@ -11,6 +11,7 @@ Public API:
 """
 from __future__ import annotations
 
+from .player import ReplayError, replay_flow
 from .quality import assess_flow_quality
 from .recorder import compile_events_to_steps, record_flow
 from .skillmd import distill_flow, flow_to_skill_md, parse_skill_md
@@ -24,5 +25,7 @@ __all__ = [
     "parse_skill_md",
     "distill_flow",
     "assess_flow_quality",
+    "replay_flow",
+    "ReplayError",
     "__version__",
 ]

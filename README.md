@@ -11,11 +11,10 @@ of locators** (CSS → ARIA role → text → XPath → coordinate), so replay s
 DOM shifting under it — and the *winning* locator is promoted and written back, so
 the file gets more robust the more it runs.
 
-> ⚠️ **Status: `v0.1` / alpha — Milestone M0.** This release ships the **format
-> specification**, the **reference recorder**, and the **SKILL.md round-trip**
-> (record → `.SKILL.md` → parse). The deterministic **replay engine** and
-> **self-healing write-back** land in **M1** (see [Roadmap](#roadmap)). The project
-> and format names are placeholders — rename freely before you publish.
+> ⚠️ **Status: `v0.1` / alpha.** Ships the **format spec**, the **reference
+> recorder**, lossless **SKILL.md round-trip**, static **robustness grading**, and
+> the deterministic **replay engine** with **self-healing write-back** (M0 + M1).
+> Next up is M2 (see [Roadmap](#roadmap)).
 
 ---
 
@@ -54,6 +53,9 @@ flowreplay lint example.SKILL.md
 
 # Round-trip check (parse the machine-readable block back to a flow).
 flowreplay export example.SKILL.md --json
+
+# Replay deterministically — supply variables; the file self-heals as it runs.
+flowreplay replay example.SKILL.md --var query="hello world"
 ```
 
 A recorded flow is just a file — commit it, diff it, review it:
@@ -90,7 +92,7 @@ See [`examples/example.SKILL.md`](examples/example.SKILL.md) for a full file and
 record(url)  ──►  inject recorder.js  ──►  you click/type/scroll  ──►
     compile events → steps (each with a locator ladder)  ──►  write  xxx.SKILL.md
 
-replay(xxx.SKILL.md, vars)   [M1]  ──►  for each step, try locators in order
+replay(xxx.SKILL.md, vars)   ──►  for each step, try locators in order
     (css → role → text → xpath → coordinate) → on success, promote + write back
 ```
 
@@ -104,12 +106,13 @@ replay(xxx.SKILL.md, vars)   [M1]  ──►  for each step, try locators in ord
 
 ## Roadmap
 
-- **M0 — this release:** format spec, reference recorder, SKILL.md round-trip, lint.
-- **M1:** deterministic replay engine (slim Playwright executor, ~15 actions) +
-  self-healing write-back + `{{variable}}` substitution.
-- **M2:** `flowreplay replay` CLI, richer quality report, PyPI 1.0, CI golden replays.
+- **M0 ✓:** format spec, reference recorder, SKILL.md round-trip, robustness lint.
+- **M1 ✓:** deterministic replay engine (slim Playwright executor, ~15 actions),
+  self-healing locator write-back, `{{variable}}` substitution, `flowreplay replay`.
+- **M2:** richer quality report, more action coverage (extract/monitor), golden-replay
+  CI matrix, `1.0` on PyPI.
 - **M3 (optional):** Agent-Skills alignment, an MCP `flow.replay` tool, an optional
-  bring-your-own-VLM visual fallback (off by default).
+  bring-your-own-VLM visual fallback (off by default), governance layer.
 
 ## Non-goals
 

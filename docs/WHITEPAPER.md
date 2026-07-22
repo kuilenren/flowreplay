@@ -59,7 +59,7 @@ these and orders them *below* the semantic role/text locators, so replay tries t
 durable locator first instead of burning an actionability timeout on an id that can
 never match again. (See `flowreplay/recorder.py`, `_css_is_volatile`.)
 
-### 3.4 The file that learns *(M1)*
+### 3.4 The file that learns
 
 When a fallback locator wins, the player promotes it to the front of that step and
 writes the flow back. The recording **converges on what works**: fragile recordings get
@@ -114,10 +114,10 @@ The gap FlowReplay fills: no existing open tool combines *record-to-data*,
 
 ## 8. Roadmap
 
-- **M0 (now):** format spec, reference recorder, round-trip, static grading, `lint`.
-- **M1:** deterministic replay engine (a slim Playwright executor over ~15 actions),
-  self-healing write-back, `{{variable}}` substitution.
-- **M2:** `flowreplay replay` CLI, richer quality report, 1.0 on PyPI, golden-replay CI.
+- **M0 ✓:** format spec, reference recorder, round-trip, static grading, `lint`.
+- **M1 ✓:** deterministic replay engine (a slim Playwright executor over ~15 actions),
+  self-healing write-back, `{{variable}}` substitution, `flowreplay replay`.
+- **M2:** richer quality report, extract/monitor actions, 1.0 on PyPI, golden-replay CI.
 - **M3 (optional):** Agent-Skills alignment, an MCP `flow.replay` tool, a bring-your-own
   VLM visual-fallback plugin (off by default), and the governance layer of §5.
 

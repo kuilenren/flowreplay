@@ -3,7 +3,7 @@
     flowreplay record <url> [-o out.SKILL.md]   # record a flow in a real browser
     flowreplay lint <file.SKILL.md>              # summary + robustness grade
     flowreplay export <file.SKILL.md> [--json]   # round-trip the machine block
-    flowreplay replay <file.SKILL.md>            # (M1) deterministic replay
+    flowreplay replay <file.SKILL.md> [--var k=v] # deterministic replay + self-heal
 """
 from __future__ import annotations
 
@@ -96,10 +96,51 @@ def _cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def _parse_vars(pairs: list[str] | None) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for p in pairs or []:
+        k, _, v = p.partition("=")
+        out[k.strip()] = v
+    return out
+
+
 def _cmd_replay(args: argparse.Namespace) -> int:
-    print("Deterministic replay lands in milestone M1. For now, `lint` grades a "
-          "flow's robustness and `export` verifies the round-trip.", file=sys.stderr)
-    return 3
+    import asyncio
+
+    from .player import ReplayError, replay_flow
+
+    with open(args.file, encoding="utf-8") as fh:
+        flow = parse_skill_md(fh.read())
+
+    def _on_step(e: dict[str, Any]) -> None:
+        mark = "✓" if e["success"] else "✗"
+        extra = ""
+        if e.get("healed"):
+            extra = f"  (self-healed → locator #{e['locator_index']})"
+        if not e["success"]:
+            extra = f"  ERROR: {e.get('error')}"
+        print(f"  {mark} step {e['seq']} {e['action']}{extra}")
+
+    try:
+        result = asyncio.run(replay_flow(
+            flow,
+            _parse_vars(args.var),
+            headless=not args.headed,
+            heal=not args.no_heal,
+            source_path=(args.file if not args.no_heal else None),
+            channel=args.channel,
+            on_step=_on_step,
+        ))
+    except ReplayError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    if result["success"]:
+        tail = f" · self-healed, wrote back {args.file}" if result["healed"] and not args.no_heal else ""
+        print(f"✅ replay succeeded{tail}")
+        return 0
+    print(f"❌ replay failed at step {result['failed_step']}", file=sys.stderr)
+    return 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -125,8 +166,14 @@ def build_parser() -> argparse.ArgumentParser:
     exp.add_argument("--json", action="store_true", help="emit the flow as JSON")
     exp.set_defaults(func=_cmd_export)
 
-    rep = sub.add_parser("replay", help="(M1) deterministically replay a flow")
+    rep = sub.add_parser("replay", help="deterministically replay a flow in a real browser")
     rep.add_argument("file")
+    rep.add_argument("--var", action="append", metavar="NAME=VALUE",
+                     help="supply a variable value (repeatable)")
+    rep.add_argument("--headed", action="store_true", help="show the browser (default: headless)")
+    rep.add_argument("--channel", help="drive a system browser channel, e.g. chrome")
+    rep.add_argument("--no-heal", action="store_true",
+                     help="do not promote/persist winning locators")
     rep.set_defaults(func=_cmd_replay)
     return p
 
