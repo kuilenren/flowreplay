@@ -1,0 +1,12 @@
+FlowReplay
+Copyright 2026 boksclaw
+
+This product includes software developed by boksclaw.
+
+Portions of this project (the browser action recorder and the SKILL.md
+distillation/round-trip logic) were originally developed as part of the boksclaw
+platform and are released here under the Apache License, Version 2.0 by the
+copyright owner.
+
+This project depends on third-party software listed in THIRD_PARTY.md. Each such
+component remains under its own license.
